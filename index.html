@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>聊聊 Neolab</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Noto+Serif+SC:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #F5F2EC;
+    --ink: #1A1814;
+    --ink-soft: #6B6560;
+    --accent: #C4502A;
+    --accent-light: #E8D5CC;
+    --line: rgba(26,24,20,0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    font-family: 'Noto Serif SC', serif;
+    color: var(--ink);
+    overflow: hidden;
+    cursor: none;
+  }
+
+  .cursor {
+    position: fixed;
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+    transition: transform 0.1s;
+  }
+
+  .deck {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+  }
+
+  .slide {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 80px 120px;
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    pointer-events: none;
+  }
+
+  .slide.active {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: all;
+  }
+
+  .nav {
+    position: fixed;
+    bottom: 48px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    z-index: 100;
+  }
+
+  .nav-btn {
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    font-family: 'Noto Serif SC', serif;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    padding: 10px 24px;
+    cursor: none;
+    transition: all 0.2s;
+    background: rgba(245,242,236,0.8);
+    backdrop-filter: blur(8px);
+  }
+
+  .nav-btn:hover { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+  .slide-counter {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--ink-soft);
+    min-width: 48px;
+    text-align: center;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .progress {
+    position: fixed;
+    top: 0; left: 0;
+    height: 2px;
+    background: var(--accent);
+    transition: width 0.4s ease;
+    z-index: 100;
+  }
+
+  /* Typography */
+  .eyebrow {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 28px;
+    font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .display {
+    font-family: 'Noto Serif SC', serif;
+    font-size: clamp(44px, 6vw, 80px);
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    font-weight: 300;
+  }
+
+  .display em {
+    font-style: italic;
+    color: var(--accent);
+    font-family: 'Instrument Serif', serif;
+  }
+
+  .headline {
+    font-family: 'Noto Serif SC', serif;
+    font-size: clamp(28px, 3.5vw, 48px);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    font-weight: 300;
+  }
+
+  .headline em {
+    font-style: italic;
+    color: var(--accent);
+    font-family: 'Instrument Serif', serif;
+  }
+
+  .body {
+    font-size: 15px;
+    line-height: 1.9;
+    color: var(--ink-soft);
+    font-weight: 300;
+    max-width: 560px;
+    font-family: 'Noto Serif SC', serif;
+  }
+
+  .body strong { color: var(--ink); font-weight: 500; }
+
+  .caption {
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--ink-soft);
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .quote-block {
+    border-left: 2px solid var(--accent);
+    padding: 20px 32px;
+    background: rgba(196,80,42,0.04);
+    margin: 24px 0;
+    max-width: 680px;
+  }
+
+  .quote-block p {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 15px;
+    line-height: 1.9;
+    color: var(--ink);
+    font-weight: 300;
+  }
+
+  .quote-block .en {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-size: 14px;
+    color: var(--ink-soft);
+    margin-top: 10px;
+    line-height: 1.6;
+  }
+
+  .quote-source {
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--ink-soft);
+    margin-top: 12px;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .divider {
+    width: 40px;
+    height: 1px;
+    background: var(--accent);
+    margin: 32px 0;
+  }
+
+  .cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: start;
+    margin-top: 48px;
+  }
+
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 32px;
+    font-size: 13px;
+  }
+
+  .table th {
+    text-align: left;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--ink-soft);
+    padding: 0 0 16px 0;
+    border-bottom: 1px solid var(--line);
+    font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .table td {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+    color: var(--ink);
+    line-height: 1.7;
+  }
+
+  .table td:first-child {
+    font-weight: 500;
+    width: 28%;
+    padding-right: 24px;
+  }
+
+  .table td.soft { color: var(--ink-soft); }
+
+  .tag {
+    display: inline-block;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    padding: 4px 10px;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    margin-right: 8px;
+    margin-bottom: 8px;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .tag.accent { border-color: var(--accent); color: var(--accent); background: rgba(196,80,42,0.06); }
+
+  .timeline { margin-top: 40px; }
+
+  .timeline-item {
+    display: flex;
+    gap: 32px;
+    padding: 24px 0;
+    border-bottom: 1px solid var(--line);
+    align-items: flex-start;
+  }
+
+  .timeline-date {
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+    min-width: 80px;
+    padding-top: 2px;
+    font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .timeline-content { flex: 1; }
+  .timeline-title { font-size: 15px; font-weight: 500; margin-bottom: 6px; }
+  .timeline-body { font-size: 13px; color: var(--ink-soft); line-height: 1.8; }
+
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    margin-top: 40px;
+    background: var(--line);
+  }
+
+  .compare-col {
+    background: var(--bg);
+    padding: 32px;
+  }
+
+  .compare-col-title {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    margin-bottom: 24px;
+    font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .compare-col-title.red { color: var(--accent); }
+  .compare-col-title.muted { color: var(--ink-soft); }
+
+  .compare-item {
+    font-size: 13px;
+    line-height: 1.8;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+    color: var(--ink-soft);
+  }
+
+  .compare-item:last-child { border-bottom: none; }
+  .compare-item strong { color: var(--ink); font-weight: 500; display: block; }
+
+  .check-list { margin-top: 24px; }
+  .check-item {
+    display: flex;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 14px;
+    align-items: flex-start;
+  }
+
+  .check-item:last-child { border-bottom: none; }
+
+  .check-mark {
+    font-size: 11px;
+    padding-top: 3px;
+    min-width: 20px;
+    color: var(--accent);
+    font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .corner-mark {
+    position: absolute;
+    top: 48px;
+    right: 80px;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--ink-soft);
+    opacity: 0.5;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .purpose-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    background: var(--line);
+    margin-top: 40px;
+  }
+
+  .purpose-card {
+    background: var(--bg);
+    padding: 32px;
+  }
+
+  .purpose-num {
+    font-family: 'Instrument Serif', serif;
+    font-size: 40px;
+    color: rgba(26,24,20,0.1);
+    margin-bottom: 16px;
+    line-height: 1;
+  }
+
+  .purpose-q {
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.7;
+    margin-bottom: 16px;
+  }
+
+  .purpose-filter {
+    font-size: 12px;
+    color: var(--ink-soft);
+    line-height: 1.8;
+  }
+
+  .purpose-filter strong { color: var(--accent); font-weight: 500; }
+
+  #s1 { justify-content: flex-end; padding-bottom: 120px; }
+  #s1 .bg-text {
+    position: absolute;
+    top: -20px;
+    right: -20px;
+    font-family: 'Instrument Serif', serif;
+    font-size: clamp(160px, 22vw, 320px);
+    color: rgba(26,24,20,0.04);
+    line-height: 1;
+    user-select: none;
+    pointer-events: none;
+    letter-spacing: -0.04em;
+  }
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="progress" id="progress"></div>
+
+<div class="deck" id="deck">
+
+  <!-- S1: 标题 -->
+  <div class="slide active" id="s1">
+    <div class="bg-text">Neo</div>
+    <div class="eyebrow">值得认真审视的一个词</div>
+    <div class="display">聊聊<br><em>Neolab。</em></div>
+    <p class="body" style="margin-top:28px; font-size:14px;">这个词从哪里来，怎么演变，以及它真正应该意味着什么。</p>
+  </div>
+
+  <!-- S2: 起源 -->
+  <div class="slide" id="s2">
+    <div class="corner-mark">起源</div>
+    <div class="eyebrow">第一部分 — 起源</div>
+    <div class="headline">"Neolab"<br>这个词从哪里来？</div>
+    <div class="divider"></div>
+    <div class="cols" style="margin-top:0; gap:64px;">
+      <div>
+        <div class="quote-block">
+          <p>这些 Neolab 的创始人表示，他们希望利用新的 AI 模型开发与研究方式——那些 OpenAI、Anthropic 等主流大厂<strong>可能忽视了的方向。</strong></p>
+          <div class="en">"...exploit new approaches to developing AI models and research they say major developers like OpenAI and Anthropic may have overlooked."</div>
+          <div class="quote-source">Stephanie Palazzolo & Sri Muppidi — The Information，2025年11月11日</div>
+        </div>
+        <div class="quote-block" style="margin-top:0;">
+          <p>研究者们出来创业，是因为他们认为今天的头部 AI 公司已经<strong>被锁定在某些既有路径上</strong>，难以自我颠覆。</p>
+          <div class="en">"...grown so big that they've become locked into certain approaches."</div>
+        </div>
+      </div>
+      <div>
+        <p class="body" style="margin-bottom:20px;">Richard Socher，正在为新实验室融资10亿美元：</p>
+        <div class="quote-block">
+          <p>"当你已经把基础设施、流程、人员、招聘都按照某种方式搭建好之后……要改变，并不容易。"</p>
+          <div class="en">"When you've set up all your infrastructure, processes, people, hiring in this way… it's not an easy thing to change."</div>
+        </div>
+        <div style="margin-top:28px; padding:20px; background:rgba(196,80,42,0.06); border:1px solid rgba(196,80,42,0.15);">
+          <div class="caption" style="margin-bottom:8px; color:var(--accent);">核心定义</div>
+          <p style="font-size:14px; line-height:1.9;">Neolab 追求的，是那些大厂<strong>结构性无法追求</strong>的方向——不只是不愿意，而是做不到。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S3: 最初10家 -->
+  <div class="slide" id="s3">
+    <div class="corner-mark">最初10家</div>
+    <div class="eyebrow">第一部分 — 起源</div>
+    <div class="headline">最初的 <em>10</em> 家——<br>每一家都有各自的差异化方向</div>
+    <table class="table" style="margin-top:28px;">
+      <thead>
+        <tr>
+          <th>公司</th>
+          <th>与主流路径的差异化方向</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Humans&</td><td class="soft">将强化学习用于数周乃至数月的长周期任务——而非大厂主流的数学/代码等短时任务</td></tr>
+        <tr><td>Isara</td><td class="soft">数千个 Agent 并行协作——而非单一 Agent 路线</td></tr>
+        <tr><td>Richard Socher's lab</td><td class="soft">能够提出新想法、自我批判的 AI——而非照本宣科</td></tr>
+        <tr><td>Periodic Labs</td><td class="soft">AI 加速材料科学发现——大厂几乎未涉足的方向</td></tr>
+        <tr><td>Thinking Machines</td><td class="soft">为企业定制、专业化的交互模型</td></tr>
+        <tr><td>Inception Labs</td><td class="soft">基于扩散模型的文本生成——非 Transformer 路线</td></tr>
+        <tr><td>Safe Superintelligence</td><td class="soft">安全优先，完全隔离产品压力</td></tr>
+        <tr><td>Reflection AI</td><td class="soft">前沿开源模型——OpenAI/Anthropic 主动回避的方向</td></tr>
+        <tr><td>Poolside</td><td class="soft">面向企业开发工具链的前沿模型</td></tr>
+        <tr><td>General Intuition</td><td class="soft">专为游戏行业构建的模型</td></tr>
+      </tbody>
+    </table>
+    <p class="caption" style="margin-top:16px; opacity:0.6;">每家公司都有各自的差异化方向——尽管这种差异的深度因公司而异。</p>
+  </div>
+
+  <!-- S4: Deedy -->
+  <div class="slide" id="s4">
+    <div class="corner-mark">定义开始漂移</div>
+    <div class="eyebrow">第二部分 — 漂移</div>
+    <div class="headline">3天后。<br>同一份名单，<em>不同的框架。</em></div>
+    <div class="timeline" style="margin-top:32px; max-width:720px;">
+      <div class="timeline-item">
+        <div class="timeline-date">11月11日</div>
+        <div class="timeline-content">
+          <div class="timeline-title">The Information 首次使用"neolab"一词</div>
+          <div class="timeline-body">核心含义：追求主流大厂<strong>结构性忽视</strong>的方向。名单上10家公司各有各自的差异化方向。</div>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-date">11月14日</div>
+        <div class="timeline-content">
+          <div class="timeline-title">Deedy Das（Menlo Ventures）转化为推文，发布同样的10家公司 <a href="https://x.com/deedydas/status/1989392319859356069" target="_blank" style="font-size:11px; color:var(--accent); text-decoration:none; letter-spacing:0.06em; margin-left:8px; font-family:'DM Sans',sans-serif;">↗ 原推</a></div>
+          <div class="timeline-body" style="margin-bottom:12px;">他的描述：<em>"这10家 Neolab 中有9家种子轮估值超10亿美元，营收几乎都在1000万以下，由曾经赚到1000万至1亿美元以上的前模型实验室 AI 研究员创立。"</em></div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <span class="tag">Pre-revenue</span>
+            <span class="tag">独角兽估值</span>
+            <span class="tag">创始人背景</span>
+            <span class="tag accent">≠ "被忽视的方向"</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:32px; padding:20px 28px; background:rgba(196,80,42,0.06); border-left:2px solid var(--accent); max-width:560px;">
+      <p style="font-size:14px; line-height:1.9;"><strong>"Overlooked"消失了。</strong>取而代之的是：估值、收入状况、创始人履历。定义从一种研究立场，变成了一种财务画像。</p>
+    </div>
+  </div>
+
+  <!-- S5: 漂移 -->
+  <div class="slide" id="s5">
+    <div class="corner-mark">不断扩张</div>
+    <div class="eyebrow">第二部分 — 漂移</div>
+    <div class="headline">10 → 50 → 63。<br><em>只进不出。</em></div>
+    <table class="table" style="margin-top:32px; max-width:800px;">
+      <thead>
+        <tr>
+          <th></th>
+          <th>2025年11月 <a href="https://x.com/deedydas/status/1989392319859356069" target="_blank" style="color:var(--accent); text-decoration:none;">↗</a></th>
+          <th>2026年2月 <a href="https://x.com/deedydas/status/2024151978599989475" target="_blank" style="color:var(--accent); text-decoration:none;">↗</a></th>
+          <th>2026年5月 <a href="https://x.com/deedydas/status/2052266037979320752" target="_blank" style="color:var(--accent); text-decoration:none;">↗</a></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>公司数量</td>
+          <td><strong>10</strong></td>
+          <td><strong>50</strong></td>
+          <td><strong>63</strong></td>
+        </tr>
+        <tr>
+          <td>定义</td>
+          <td class="soft">无正式定义</td>
+          <td class="soft">pre-revenue scale startup working on long-term AI breakthroughs</td>
+          <td class="soft">同上 + "通常估值10亿美元以上"</td>
+        </tr>
+        <tr>
+          <td>"被忽视的方向"还在吗？</td>
+          <td style="color:var(--accent);">✕</td>
+          <td style="color:var(--accent);">✕</td>
+          <td style="color:var(--accent);">✕</td>
+        </tr>
+        <tr>
+          <td>有公司被移出过吗？</td>
+          <td class="soft">—</td>
+          <td style="color:var(--accent);">从未</td>
+          <td style="color:var(--accent);">从未</td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="margin-top:32px; max-width:560px;">
+      <p style="font-size:16px; font-family:'Instrument Serif',serif; font-style:italic; line-height:1.6; color:var(--ink);">一个只进不出的定义，不是定义。是宾客名单。</p>
+    </div>
+  </div>
+
+  <!-- S6: 标准不清 -->
+  <div class="slide" id="s6">
+    <div class="corner-mark">边界未定</div>
+    <div class="eyebrow">第二部分 — 漂移</div>
+    <div class="headline">划了一条线，<br>但<em>从未定义</em>这条线。</div>
+    <div class="compare" style="margin-top:36px; max-width:760px;">
+      <div class="compare-col">
+        <div class="compare-col-title muted">被排除（Notable Omissions）</div>
+        <div class="compare-item"><strong>Mistral</strong> 给出理由："open-source · revenue scale"</div>
+        <div class="compare-item"><strong>Cohere</strong> 给出理由："enterprise · revenue scale"</div>
+      </div>
+      <div class="compare-col">
+        <div class="compare-col-title red">被包含——未给出解释</div>
+        <div class="compare-item"><strong>Nous Research</strong> 同样是开源模型，同样有商业产品线。为何与 Mistral 不同？从未解释。</div>
+        <div class="compare-item"><strong>QuTwo</strong> 方向标签："Quantum"——量子计算，不是 AI 研究</div>
+        <div class="compare-item"><strong>Merge Labs</strong> 方向标签："Brain-computer interface"——脑机接口，不是 AI 研究</div>
+      </div>
+    </div>
+    <div style="margin-top:28px; padding:20px 28px; background:rgba(196,80,42,0.05); border-left:2px solid var(--accent); max-width:680px;">
+      <p style="font-size:14px; line-height:1.9;">排除标准从未被精确定义。"Revenue scale"是多少？没有给出门槛。没有清晰的边界，就无法判断这条线是否被一致执行——甚至无法判断它是否真的存在。</p>
+    </div>
+  </div>
+
+  <!-- S7: swyx 的视角 -->
+  <div class="slide" id="s7">
+    <div class="corner-mark">另一种批评</div>
+    <div class="eyebrow">插曲 — 一个不同的视角</div>
+    <div class="headline">也许问题不只是<br>定义本身。</div>
+    <div class="cols" style="margin-top:36px; gap:60px;">
+      <div>
+        <div class="quote-block">
+          <p>"'NEOlab' 的问题和 'NEOcloud' 一样——光是'新'本身不是一个商业计划，也不是一个投资论点。"</p>
+          <div class="en">"Just being 'new' isn't a business plan or an investment thesis."</div>
+          <div class="quote-source">swyx — Latent Space，2025年11月</div>
+        </div>
+        <p class="body" style="margin-top:20px;">swyx 提出了"Agent Lab"这个词作为替代——商业模式直接嵌在名字里：模型实验室卖模型，Agent 实验室卖 Agent。</p>
+      </div>
+      <div>
+        <div class="compare-col-title muted" style="margin-bottom:20px;">两种路径</div>
+        <div class="compare-item" style="padding:16px 0;">
+          <strong>Neolab 的方式</strong>
+          先融资 → 做研究 → 希望产品自然涌现<br>
+          <span style="color:var(--accent); font-size:12px;">Magic.dev：融资1亿做长上下文模型 → 失败</span>
+        </div>
+        <div class="compare-item" style="padding:16px 0;">
+          <strong>Agent Lab 的方式</strong>
+          先做产品 → 深入理解用户 → 再做模型<br>
+          <span style="color:var(--ink-soft); font-size:12px;">Cursor：先 fork VSCode，两年后才做模型 → 估值290亿</span>
+        </div>
+        <p class="body" style="margin-top:20px; font-size:13px;">对主流路径有异见是必要的。但异见本身不能付账单。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- S8: 为什么要关注 -->
+  <div class="slide" id="s8">
+    <div class="corner-mark">真正的问题</div>
+    <div class="eyebrow">第三部分 — 为什么这很重要</div>
+    <div class="headline">我们为什么<br>要<em>关注</em>这份名单？</div>
+    <div class="divider"></div>
+    <div style="max-width:620px;">
+      <p class="body" style="font-size:16px; margin-bottom:24px;">如果"Neolab"只是"知名创始人创立的、估值10亿但暂无收入的 AI 公司"——我们已经有一个词来描述这件事了。</p>
+      <p class="body" style="font-size:16px; margin-bottom:24px;">维护一份 Neolab 观察名单的唯一理由，是这个分类能告诉你一些普通融资数据库告诉不了你的事情。</p>
+      <p class="body" style="font-size:16px; margin-bottom:32px;">如果定义没有在做任何筛选工作——这份名单也没有在做任何分析工作。</p>
+      <div style="padding:24px 28px; border:1px solid var(--line); background:rgba(26,24,20,0.02);">
+        <p style="font-size:15px; line-height:1.9;"><strong>值得问的问题是：</strong>你关注这些公司，是因为融资故事，还是因为研究方向？这是两份不同的名单。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- S9: 目的 -->
+  <div class="slide" id="s9">
+    <div class="corner-mark">名单需要目的</div>
+    <div class="eyebrow">第三部分 — 为什么这很重要</div>
+    <div class="headline">一份名单，<br>需要<em>一个目的。</em></div>
+    <div class="purpose-grid" style="margin-top:36px;">
+      <div class="purpose-card">
+        <div class="purpose-num">01</div>
+        <div class="purpose-q">"谁可能带来下一次范式转移？"</div>
+        <div class="purpose-filter">筛选标准：<strong>具体的技术异见</strong> + 大厂结构性无法追求的理由</div>
+      </div>
+      <div class="purpose-card">
+        <div class="purpose-num">02</div>
+        <div class="purpose-q">"谁是大厂最佳的 acquihire 标的？"</div>
+        <div class="purpose-filter">筛选标准：<strong>团队背景</strong> + 研究产出质量</div>
+      </div>
+      <div class="purpose-card">
+        <div class="purpose-num">03</div>
+        <div class="purpose-q">"谁能带来超额的 VC 回报？"</div>
+        <div class="purpose-filter">筛选标准：<strong>PMF 信号</strong> + 可信的收入路径</div>
+      </div>
+    </div>
+    <div style="margin-top:28px; padding:20px 28px; background:rgba(196,80,42,0.05); border-left:2px solid var(--accent); max-width:680px;">
+      <p style="font-size:14px; line-height:1.9;">Deedy 的名单对这三个目的都没有优化。它描述的是一种财务状态。这是一个起点——不是一个筛选器。</p>
+    </div>
+  </div>
+
+  <!-- S10: 如何追踪 -->
+  <div class="slide" id="s10">
+    <div class="corner-mark">如何追踪</div>
+    <div class="eyebrow">第三部分 — 为什么这很重要</div>
+    <div class="headline">如果要追踪 Neolab，<br>我们需要知道<em>为什么。</em></div>
+    <div class="check-list" style="max-width:640px; margin-top:36px;">
+      <div class="check-item">
+        <span class="check-mark">01</span>
+        <div>
+          <strong style="font-size:14px; display:block; margin-bottom:6px;">这家公司在押注什么——那是大厂结构性无法押注的吗？</strong>
+          <span style="font-size:13px; color:var(--ink-soft);">不是"我们在做长期研究"——而是具体是什么方向，为什么 OpenAI/Google/Anthropic 做不了？</span>
+        </div>
+      </div>
+      <div class="check-item">
+        <span class="check-mark">02</span>
+        <div>
+          <strong style="font-size:14px; display:block; margin-bottom:6px;">有没有可信的技术理由，支持这个方向真的能通向某个重要突破？</strong>
+          <span style="font-size:13px; color:var(--ink-soft);">团队的赌注和技术的赌注都需要，缺一不可。</span>
+        </div>
+      </div>
+      <div class="check-item">
+        <span class="check-mark">03</span>
+        <div>
+          <strong style="font-size:14px; display:block; margin-bottom:6px;">团队有没有执行这个具体方向的能力？</strong>
+          <span style="font-size:13px; color:var(--ink-soft);">一支强大的团队走在错误的方向上，是否定条件，不只是风险因素。</span>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:32px;">
+      <p style="font-family:'Instrument Serif',serif; font-size:18px; font-style:italic; color:var(--ink-soft);">用这三个问题筛选，63家会变成大约10–15家。那才是值得追踪的名单。</p>
+    </div>
+  </div>
+
+  <!-- S11: 结尾 -->
+  <div class="slide" id="s11">
+    <div class="bg-text" style="position:absolute; top:-20px; right:-20px; font-family:'Instrument Serif',serif; font-size:clamp(160px,22vw,320px); color:rgba(26,24,20,0.03); line-height:1; user-select:none; pointer-events:none; letter-spacing:-0.04em;">63</div>
+    <div class="eyebrow">结语</div>
+    <div class="display" style="max-width:720px;">我们不是说<br>另外那50家是<em>坏公司。</em></div>
+    <div class="divider" style="margin:40px 0;"></div>
+    <div style="max-width:580px;">
+      <p class="body" style="font-size:16px; margin-bottom:20px;">我们是说：<strong>搞清楚你为什么在关注它们。</strong></p>
+      <p class="body" style="font-size:16px; margin-bottom:20px;">是融资故事？还是研究方向？</p>
+      <p class="body" style="font-size:16px;">如果你的筛选标准是"pre-revenue + 10亿估值"——你追踪的不是 Neolab，你追踪的是一种融资现象。</p>
+      <p class="body" style="font-size:16px; margin-top:20px;">这是两件不同的事。</p>
+    </div>
+  </div>
+
+</div>
+
+<div class="nav">
+  <button class="nav-btn" id="prev">← 上一页</button>
+  <span class="slide-counter" id="counter">1 / 11</span>
+  <button class="nav-btn" id="next">下一页 →</button>
+</div>
+
+<script>
+  const cursor = document.getElementById('cursor');
+  document.addEventListener('mousemove', e => {
+    cursor.style.left = e.clientX + 'px';
+    cursor.style.top = e.clientY + 'px';
+  });
+
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+
+  function goTo(n) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(n, total - 1));
+    slides[current].classList.add('active');
+    document.getElementById('counter').textContent = (current + 1) + ' / ' + total;
+    document.getElementById('progress').style.width = ((current + 1) / total * 100) + '%';
+  }
+
+  document.getElementById('next').addEventListener('click', () => goTo(current + 1));
+  document.getElementById('prev').addEventListener('click', () => goTo(current - 1));
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') goTo(current + 1);
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') goTo(current - 1);
+  });
+
+  let touchX = 0;
+  document.addEventListener('touchstart', e => { touchX = e.touches[0].clientX; });
+  document.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - touchX;
+    if (Math.abs(dx) > 50) goTo(current + (dx < 0 ? 1 : -1));
+  });
+
+  document.getElementById('progress').style.width = (1 / total * 100) + '%';
+</script>
+</body>
+</html>
